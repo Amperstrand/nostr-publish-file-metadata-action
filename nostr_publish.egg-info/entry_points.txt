@@ -1,0 +1,2 @@
+[console_scripts]
+nostr-publish = nostr_publish.publisher:main

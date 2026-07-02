@@ -1,0 +1,15 @@
+LICENSE
+README.md
+pyproject.toml
+nostr_publish/__init__.py
+nostr_publish/__main__.py
+nostr_publish/blossom.py
+nostr_publish/constants.py
+nostr_publish/nostr_events.py
+nostr_publish/publisher.py
+nostr_publish/scanner.py
+nostr_publish.egg-info/PKG-INFO
+nostr_publish.egg-info/SOURCES.txt
+nostr_publish.egg-info/dependency_links.txt
+nostr_publish.egg-info/entry_points.txt
+nostr_publish.egg-info/top_level.txt
