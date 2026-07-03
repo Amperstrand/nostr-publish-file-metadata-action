@@ -25,6 +25,7 @@ import hashlib
 import json
 import mimetypes
 import os
+import ssl
 import subprocess
 import sys
 import time
@@ -37,6 +38,12 @@ from nostr_publish.constants import BLOSSOM_SERVERS
 
 DEFAULT_BLOSSOM_SERVER = BLOSSOM_SERVERS[0] if BLOSSOM_SERVERS else "https://blossom.psbt.me"
 FREE_TIER_SIZE_LIMIT = 1_000_000  # 1 MB -- files under this get 30 days free
+
+try:
+    import certifi
+    _ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _ssl_ctx = ssl.create_default_context()
 
 
 # --- Utility functions ---
@@ -192,7 +199,7 @@ def mint_cashu_tokens(amount_sats: int, mint_url: str = "https://testnut.cashu.e
     )
 
     try:
-        with urllib.request.urlopen(quote_req, timeout=30) as resp:
+        with urllib.request.urlopen(quote_req, timeout=30, context=_ssl_ctx) as resp:
             quote = json.loads(resp.read())
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"Mint quote failed: {e.code} {e.read().decode()[:200]}")
@@ -206,7 +213,7 @@ def mint_cashu_tokens(amount_sats: int, mint_url: str = "https://testnut.cashu.e
         method="GET",
     )
     try:
-        with urllib.request.urlopen(check_req, timeout=10) as resp:
+        with urllib.request.urlopen(check_req, timeout=10, context=_ssl_ctx) as resp:
             status = json.loads(resp.read())
     except Exception:
         status = {"state": "paid", "paid": True}
@@ -297,7 +304,7 @@ def upload_to_blossom(
     req = urllib.request.Request(upload_url, data=file_data, headers=headers, method="PUT")
 
     try:
-        with urllib.request.urlopen(req, timeout=60) as response:
+        with urllib.request.urlopen(req, timeout=60, context=_ssl_ctx) as response:
             body = json.loads(response.read())
             return {
                 "url": body.get("url", get_blob_url(server_url, sha256)),
