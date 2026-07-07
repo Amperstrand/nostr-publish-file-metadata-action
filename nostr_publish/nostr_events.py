@@ -249,6 +249,7 @@ def publish_test_run_event(
     summary: str = "",
     relays: list | None = None,
     project_tag: str = "tollgate",
+    extra_tags: list | None = None,
 ) -> dict:
     """Publish a kind 30078 parameterized replaceable test-run index event.
 
@@ -267,6 +268,7 @@ def publish_test_run_event(
         summary: Human-readable run summary (goes into content).
         relays: Relay list override.
         project_tag: Project identifier for dashboard filtering (e.g. "tollgate", "fips", "ble-experiment").
+        extra_tags: Additional Nostr tags (e.g. [["t", "openwrt-24"], ["router", "dlink-covr-x1860-a1"]]).
 
     Returns:
         Result dict from _publish_event.
@@ -283,7 +285,9 @@ def publish_test_run_event(
         ["timestamp", str(timestamp)],
     ]
 
-    # Each file URL as a separate tag so consumers can enumerate them
+    if extra_tags:
+        tags.extend(extra_tags)
+
     for url in file_urls:
         tags.append(["file", url])
 

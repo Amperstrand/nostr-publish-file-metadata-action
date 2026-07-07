@@ -485,6 +485,17 @@ def publish_results(
         logger.info("Skipping kind 30078 summary (SKIP_30078_SUMMARY set)")
     else:
         try:
+            extra_tags = []
+            ow_version = metadata.get("openwrt_version") or os.environ.get("OPENWRT_VERSION", "")
+            if ow_version:
+                extra_tags.append(["t", f"openwrt-{ow_version}"])
+            router_model = metadata.get("router") or os.environ.get("ROUTER_MODEL", "")
+            if router_model:
+                extra_tags.append(["router", router_model])
+            use_case = metadata.get("use_case") or os.environ.get("USE_CASE", "")
+            if use_case:
+                extra_tags.append(["use_case", use_case])
+
             result = publish_test_run_event(
                 nsec_file=nsec_file,
                 run_id=run_id,
@@ -493,6 +504,7 @@ def publish_results(
                 summary=summary_content,
                 relays=relays,
                 project_tag=os.environ.get("PROJECT_TAG", "tollgate"),
+                extra_tags=extra_tags if extra_tags else None,
             )
             if result.get("success"):
                 summary_event_id = result.get("event_id") or None
