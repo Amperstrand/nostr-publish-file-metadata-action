@@ -35,7 +35,9 @@ from typing import Any
 # --- Constants ---
 
 DEFAULT_RELAYS = [
-    "wss://relay.cashu.email",
+    "wss://relay1.orangesync.tech",
+    "wss://relay.damus.io",
+    "wss://nos.lol",
 ]
 
 KIND_NIP94_FILE_METADATA = 1063   # NIP-94: file header for BlossomFS
