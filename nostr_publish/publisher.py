@@ -480,12 +480,54 @@ def publish_results(
             summary_payload[key] = metadata[key]
     summary_content = json.dumps(summary_payload, separators=(",", ":"))
 
+    # Relays reject events > ~64KB.  Upload the full manifest to Blossom and
+    # put a minimal summary + manifest_url in the event content.
+    manifest_url: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix="manifest_", suffix=".json", mode="w",
+            encoding="utf-8", delete=False,
+        ) as mtmp:
+            mtmp.write(summary_content)
+            manifest_blob_path = Path(mtmp.name)
+        try:
+            mentry = _upload_one(
+                manifest_blob_path, nsec_file, blossom_server,
+                "application/json", max_file_size,
+            )
+            manifest_url = mentry["blossom_url"]
+            logger.info("Full manifest uploaded to %s", manifest_url)
+        finally:
+            try:
+                os.unlink(manifest_blob_path)
+            except OSError:
+                pass
+    except Exception:
+        logger.exception("Failed to upload manifest blob; falling back to inline content")
+
+    if manifest_url:
+        minimal_payload: dict = {
+            "run_id": run_id,
+            "timestamp": timestamp_str,
+            "blossom_server": blossom_server,
+            "manifest_url": manifest_url,
+            "file_count": len(all_files),
+        }
+        for key in ("passed", "failed", "skipped", "total"):
+            if key in metadata:
+                minimal_payload[key] = metadata[key]
+        event_content = json.dumps(minimal_payload, separators=(",", ":"))
+    else:
+        event_content = summary_content
+
     summary_event_id: str | None = None
     if os.environ.get("SKIP_30078_SUMMARY"):
         logger.info("Skipping kind 30078 summary (SKIP_30078_SUMMARY set)")
     else:
         try:
             extra_tags = []
+            if manifest_url:
+                extra_tags.append(["manifest_url", manifest_url])
             ow_version = metadata.get("openwrt_version") or os.environ.get("OPENWRT_VERSION", "")
             if ow_version:
                 extra_tags.append(["t", f"openwrt-{ow_version}"])
@@ -501,7 +543,7 @@ def publish_results(
                 run_id=run_id,
                 timestamp=timestamp_unix,
                 file_urls=file_urls,
-                summary=summary_content,
+                summary=event_content,
                 relays=relays,
                 project_tag=os.environ.get("PROJECT_TAG", "tollgate"),
                 extra_tags=extra_tags if extra_tags else None,
