@@ -76,7 +76,7 @@ DEFAULT_BLOSSOM_SERVER = os.environ.get(
 DEFAULT_RELAYS = [
     r.strip()
     for r in os.environ.get(
-        "NOSTR_RELAYS", "wss://relay.cashu.email"
+        "NOSTR_RELAYS", "wss://relay.damus.io,wss://nos.lol,wss://relay.cashu.email"
     ).split(",")
     if r.strip()
 ]
