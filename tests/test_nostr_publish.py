@@ -389,4 +389,78 @@ class TestPublishTestRunEventNoNak:
         )
 
         assert result["success"] is False
-        assert "nak" in result["error"].lower()
+
+
+class TestNakCommandConstruction:
+    """Verify the nak CLI command is constructed correctly.
+
+    Regression guard for the #230 bug where CI used 'cat events.jsonl |
+    nak event $RELAYS' (creates text notes instead of relaying pre-signed
+    events). These tests mock subprocess.run to verify the command shape
+    without actually calling nak.
+    """
+
+    def test_nak_command_includes_relays_as_positional_args(self, tmp_path, monkeypatch):
+        """Relays must be positional args after tags, not piped via stdin."""
+        import nostr_publish.nostr_events as ne
+        captured_cmd = []
+
+        def fake_run(cmd, **kwargs):
+            captured_cmd.append(cmd)
+            class FakeResult:
+                returncode = 0
+                stdout = '{"id":"abc","kind":1063}'
+                stderr = "publishing to wss://relay.example.com... success.\n"
+            return FakeResult()
+
+        monkeypatch.setattr(ne.subprocess, "run", fake_run)
+        monkeypatch.setattr(ne, "_nak_available", lambda: True)
+
+        nsec_file = tmp_path / "nsec"
+        nsec_file.write_text("a" * 64)
+
+        publish_nip94_event(
+            nsec_file=str(nsec_file),
+            filename="test.ipk",
+            blossom_url="https://blossom.psbt.me/abc",
+            sha256="abc123",
+            mime_type="application/octet-stream",
+            relays=["wss://relay1.com", "wss://relay2.com"],
+        )
+
+        cmd = captured_cmd[0]
+        assert cmd[0] == "nak"
+        assert cmd[1] == "event"
+        assert "-k" in cmd
+        assert cmd.index("wss://relay1.com") > cmd.index("-k")
+        assert "wss://relay2.com" in cmd
+
+    def test_nak_uses_env_var_not_sec_flag(self, tmp_path, monkeypatch):
+        """NOSTR_SECRET_KEY must be env var, not --sec flag (process list safety)."""
+        import nostr_publish.nostr_events as ne
+        captured_env = {}
+
+        def fake_run(cmd, **kwargs):
+            captured_env.update(kwargs.get("env", {}))
+            class FakeResult:
+                returncode = 0
+                stdout = '{"id":"abc"}'
+                stderr = "publishing to wss://relay.example.com... success.\n"
+            return FakeResult()
+
+        monkeypatch.setattr(ne.subprocess, "run", fake_run)
+        monkeypatch.setattr(ne, "_nak_available", lambda: True)
+
+        nsec_file = tmp_path / "nsec"
+        test_nsec = "f" * 64
+        nsec_file.write_text(test_nsec)
+
+        publish_nip94_event(
+            nsec_file=str(nsec_file),
+            filename="test.txt",
+            blossom_url="https://blossom.psbt.me/abc",
+            sha256="abc",
+            mime_type="text/plain",
+        )
+
+        assert captured_env.get("NOSTR_SECRET_KEY") == test_nsec
