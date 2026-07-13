@@ -42,6 +42,7 @@ DEFAULT_RELAYS = [
 
 KIND_NIP94_FILE_METADATA = 1063   # NIP-94: file header for BlossomFS
 KIND_APP_DATA = 30078             # Parameterized replaceable: run index
+KIND_TEXT_NOTE = 1                # Kind 1: human-visible text note
 
 
 # --- Internal helpers ---
@@ -296,6 +297,20 @@ def publish_test_run_event(
     content = summary if summary else f"Test run {run_id} at {timestamp}"
 
     return _publish_event(nsec_file, KIND_APP_DATA, content, tags, relays)
+
+
+def publish_text_note(
+    nsec_file: str,
+    content: str,
+    relays: list = None,
+    extra_tags: list = None,
+) -> dict:
+    """Publish a kind 1 text note (visible in standard Nostr clients).
+
+    Use alongside NIP-94/30078 events for human-readable announcements.
+    """
+    tags = list(extra_tags) if extra_tags else []
+    return _publish_event(nsec_file, KIND_TEXT_NOTE, content, tags, relays)
 
 
 # --- CLI entry point ---
