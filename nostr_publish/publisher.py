@@ -64,7 +64,7 @@ from nostr_publish.scanner import is_blocked_file, scan_directory, scan_file
 # Constants
 # ---------------------------------------------------------------------------
 
-#: Default per-file size cap (matches Blossom free tier, 1 MB).
+#: Default per-file size cap (10 MB — Blossomflare tier).
 DEFAULT_MAX_FILE_SIZE = 10_000_000
 
 #: Default Blossom server if neither CLI nor env provides one.
