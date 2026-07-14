@@ -35,6 +35,7 @@ from typing import Any
 # --- Constants ---
 
 DEFAULT_RELAYS = [
+    "wss://relay.cashu.email",
     "wss://relay1.orangesync.tech",
     "wss://relay.damus.io",
     "wss://nos.lol",
